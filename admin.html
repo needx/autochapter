@@ -100,6 +100,10 @@
                 <label>Porta do Servidor (Aplicativo)</label>
                 <input type="number" id="configPortaApp" placeholder="3000">
             </div>
+            <div class="form-group" style="margin-bottom: 0; grid-column: span 2;">
+                <label>URL do Plugin Holyrics (HTML)</label>
+                <input type="text" id="configHolyrics" placeholder="http://localhost:80/view/text">
+            </div>
         </div>
         <button class="btn-save" onclick="salvarConfiguracoes()">💾 Salvar Configurações</button>
 
@@ -164,7 +168,8 @@
                 document.getElementById('configUser').value = dados.obsUser || '';
                 document.getElementById('configSenha').value = dados.obsPassword || '';
                 document.getElementById('configPortaApp').value = dados.appPort || '3000';
-                
+                document.getElementById('configHolyrics').value = dados.holyricsUrl || 'http://localhost:80/view/text';
+
                 botoes = dados.botoes || [];
                 renderizarBotoes();
             } catch (error) {
@@ -178,7 +183,8 @@
                 obsPort: document.getElementById('configPortaObs').value,
                 obsUser: document.getElementById('configUser').value,
                 obsPassword: document.getElementById('configSenha').value,
-                appPort: document.getElementById('configPortaApp').value
+                appPort: document.getElementById('configPortaApp').value,
+                holyricsUrl: document.getElementById('configHolyrics').value
             };
             
             // Envia para o main.js salvar no banco

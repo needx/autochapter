@@ -21,10 +21,51 @@ let tray = null; // Ícone ao lado do relógio
 // ---------------------------------------------------------
 // 1. SERVIDOR EXPRESS (Dock e Holyrics)
 // ---------------------------------------------------------
-expressApp.post('/api/holyrics', (req, res) => {
-    const { tipo, titulo } = req.body;
-    registrarCapitulo(tipo === 'biblia' ? '📖' : '🎵', titulo);
-    res.json({ success: true });
+expressApp.post('/api/holyrics', async (req, res) => {
+    try {
+        const holyricsUrl = store.get('holyricsUrl', 'http://localhost:80/view/text');
+        const response = await fetch(holyricsUrl);
+        const html = await response.text();
+
+        let tituloExtraido = "";
+        let icone = "📌"; // Ícone padrão
+
+        // 1. Busca por Música
+        const matchMusicTitle = html.match(/<div id="music_title"[^>]*>(.*?)<\/div>/);
+        const matchMusicArtist = html.match(/<div id="music_artist"[^>]*>(.*?)<\/div>/);
+        
+        // 2. Busca por Bíblia
+        const matchBible = html.match(/<span class="header bible-header-custom"[^>]*>(.*?)<\/span>/);
+
+        // 3. Lógica de decisão
+        if (matchMusicTitle && matchMusicTitle[1].trim() !== '') {
+            const title = matchMusicTitle[1].trim();
+            const artist = (matchMusicArtist && matchMusicArtist[1].trim() !== '') 
+                ? ` - ${matchMusicArtist[1].trim()}` 
+                : '';
+            tituloExtraido = title + artist;
+            icone = "🎵";
+        } 
+        else if (matchBible && matchBible[1].trim() !== '') {
+            tituloExtraido = matchBible[1].trim();
+            icone = "📖";
+        } 
+        else if (html.includes('empty_slide')) {
+            // Se a tela estiver limpa/vazia, ignoramos silenciosamente
+            return res.json({ success: true, message: "Tela vazia ignorada." });
+        } 
+        else {
+            return res.json({ success: false, message: "Nenhum dado reconhecido no HTML." });
+        }
+
+        // Registra o capítulo no sistema
+        registrarCapitulo(icone, tituloExtraido);
+        res.json({ success: true, titulo: tituloExtraido });
+
+    } catch (error) {
+        console.error("❌ Erro ao buscar dados no HTML do Holyrics:", error.message);
+        res.status(500).json({ success: false, error: "Não foi possível conectar ao plugin do Holyrics." });
+    }
 });
 
 expressApp.post('/api/manual', (req, res) => {
@@ -212,7 +253,8 @@ ipcMain.handle('obter-dados-store', () => {
         obsUser: store.get('obsUser', ''),
         obsPassword: store.get('obsPassword', ''),
         appPort: store.get('appPort', '3000'),
-        botoes: store.get('botoes', [])
+        botoes: store.get('botoes', []),
+        holyricsUrl: store.get('holyricsUrl', 'http://localhost:80/view/text'),
     };
 });
 
@@ -225,6 +267,7 @@ ipcMain.on('salvar-configuracoes', (event, config) => {
     store.set('obsUser', config.obsUser);
     store.set('obsPassword', config.obsPassword);
     store.set('appPort', config.appPort);
+    store.set('holyricsUrl', config.holyricsUrl);
     
     console.log("Configurações atualizadas via painel Admin.");
     isReconnecting = true;
