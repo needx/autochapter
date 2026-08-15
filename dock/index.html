@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>OBS Dock - Capítulos</title>
+    <style>
+        /* Estilizado para combinar com o tema Dark padrão do OBS */
+        body {
+            background-color: #2b2b2b;
+            color: #ffffff;
+            font-family: 'Open Sans', 'Segoe UI', Tahoma, sans-serif;
+            margin: 0;
+            padding: 10px;
+            overflow-x: hidden;
+        }
+
+        .grid-botoes {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+        }
+
+        .dock-btn {
+            background-color: #4c4c4c;
+            border: 1px solid #1c1c1c;
+            color: #fff;
+            padding: 12px 5px;
+            border-radius: 4px;
+            font-size: 13px;
+            cursor: pointer;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 5px;
+            transition: background 0.1s;
+        }
+
+        .dock-btn:hover {
+            background-color: #5c5c5c;
+        }
+
+        .dock-btn:active {
+            background-color: #3b82f6;
+            border-color: #2563eb;
+        }
+
+        .btn-icone {
+            font-size: 20px;
+        }
+
+        .status {
+            text-align: center;
+            font-size: 11px;
+            color: #888;
+            margin-top: 15px;
+        }
+    </style>
+</head>
+
+<body>
+    <!-- Botão para abrir o painel oculto -->
+    <button onclick="abrirAdmin()"
+        style="background: transparent; border: 1px dashed #555; color: #aaa; margin-bottom: 15px; font-size: 12px; padding: 6px; width: 100%; cursor: pointer;">
+        ⚙️ Configurar Botões
+    </button>
+
+    <!-- CONTAINER CORRIGIDO COM A ID E CLASSE CORRETAS -->
+    <div class="grid-botoes" id="dockBotoes">
+        <!-- Botões carregam aqui -->
+    </div>
+    
+    <!-- MENSAGEM DE STATUS ADICIONADA PARA EVITAR ERROS NO JS -->
+    <div id="statusMsg" class="status">Aguardando botões...</div>
+
+    <script>
+        async function abrirAdmin() {
+            try {
+                await fetch('http://localhost:3000/api/abrir-admin');
+            } catch (e) {
+                console.error("Erro ao solicitar abertura do Admin", e);
+            }
+        }
+
+        const API_URL = 'http://localhost:3000/api';
+
+        async function carregarBotoes() {
+            try {
+                const res = await fetch(`${API_URL}/botoes`);
+                const botoes = await res.json();
+
+                const container = document.getElementById('dockBotoes');
+                container.innerHTML = botoes.map(btn => `
+                    <button class="dock-btn" onclick="marcar('${btn.icone}', '${btn.titulo}')">
+                        <span class="btn-icone">${btn.icone}</span>
+                        <span>${btn.label}</span>
+                    </button>
+                `).join('');
+                
+                document.getElementById('statusMsg').innerText = "Painel Conectado";
+                document.getElementById('statusMsg').style.color = "#888";
+            } catch (err) {
+                document.getElementById('statusMsg').innerText = "Erro ao carregar botões. O app está aberto?";
+                document.getElementById('statusMsg').style.color = "#ff5555";
+            }
+        }
+
+        async function marcar(icone, titulo) {
+            try {
+                await fetch(`${API_URL}/manual`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ icone, titulo })
+                });
+
+                const status = document.getElementById('statusMsg');
+                status.innerText = "✓ Marcação enviada!";
+                status.style.color = "#50fa7b";
+                setTimeout(() => {
+                    status.innerText = "Painel Conectado";
+                    status.style.color = "#888";
+                }, 2000);
+
+            } catch (err) {
+                console.error(err);
+            }
+        }
+
+        carregarBotoes();
+        setInterval(carregarBotoes, 5000);
+    </script>
+</body>
+
+</html>

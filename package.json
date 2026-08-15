@@ -1,0 +1,66 @@
+{
+  "name": "obs-chapter-marker",
+  "version": "1.0.0",
+  "description": "",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "build": "electron-builder",
+    "build:win": "electron-builder --win"
+  },
+  "build": {
+    "appId": "com.obs.chaptermarker",
+    "productName": "OBS Chapter Marker",
+    "directories": {
+      "output": "dist"
+    },
+    "files": [
+      "**/*",
+      "!node_modules/*",
+      "node_modules/obs-websocket-js/**/*",
+      "node_modules/googleapis/**/*",
+      "node_modules/google-auth-library/**/*",
+      "node_modules/dotenv/**/*",
+      "node_modules/electron-store/**/*",
+      "node_modules/cors/**/*",
+      "node_modules/express/**/*"
+    ],
+    "extraResources": [
+      {
+        "from": "autostart_marcadores.lua",
+        "to": "autostart_marcadores.lua",
+        "filter": ["**/*"]
+      },
+      {
+        "from": "credentials.json",
+        "to": "credentials.json",
+        "filter": ["**/*"]
+      }
+    ],
+    "win": {
+      "target": "nsis"
+    },
+    "mac": {
+      "target": "dmg"
+    },
+    "linux": {
+      "target": "AppImage"
+    }
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "dependencies": {
+    "cors": "^2.8.6",
+    "dotenv": "^17.4.2",
+    "electron-store": "^11.0.2",
+    "express": "^5.2.1",
+    "googleapis": "^174.0.1",
+    "obs-websocket-js": "^5.0.8"
+  },
+  "devDependencies": {
+    "electron": "^43.4.0",
+    "electron-builder": "^26.15.3"
+  }
+}

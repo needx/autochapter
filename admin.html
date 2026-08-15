@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gerenciador de Capítulos - OBS</title>
+    <style>
+        :root {
+            --bg-color: #1e1e2e;
+            --panel-bg: #282a36;
+            --text-color: #f8f8f2;
+            --primary: #bd93f9;
+            --success: #50fa7b;
+            --danger: #ff5555;
+            --border: #44475a;
+        }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            margin: 0;
+            padding: 20px;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            height: 100vh;
+            box-sizing: border-box;
+        }
+        .panel {
+            background-color: var(--panel-bg);
+            border-radius: 8px;
+            padding: 20px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+            display: flex;
+            flex-direction: column;
+            overflow-y: auto;
+        }
+        h2 { margin-top: 0; color: var(--primary); border-bottom: 1px solid var(--border); padding-bottom: 10px;}
+        
+        /* Formulários */
+        .form-group { margin-bottom: 15px; }
+        .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 15px; }
+        label { display: block; font-size: 13px; margin-bottom: 5px; color: #ccc; }
+        input {
+            width: 100%; padding: 10px; border-radius: 4px; border: 1px solid var(--border);
+            background: var(--bg-color); color: var(--text-color); box-sizing: border-box;
+        }
+        button {
+            background-color: var(--primary); color: #fff; border: none; padding: 10px 15px;
+            border-radius: 4px; cursor: pointer; font-weight: bold; width: 100%; transition: 0.2s;
+        }
+        button:hover { filter: brightness(1.1); }
+        .btn-save { background-color: var(--success); color: #1e1e2e; margin-bottom: 20px; }
+        
+        /* Lista de Botões */
+        .btn-list { flex-grow: 1; margin-top: 20px; }
+        .btn-item {
+            display: flex; justify-content: space-between; align-items: center;
+            background: var(--bg-color); padding: 10px; border-radius: 4px; margin-bottom: 10px;
+        }
+        .btn-item button { background-color: var(--danger); width: auto; padding: 5px 10px; color: white;}
+
+        /* Logs */
+        .log-container {
+            background: var(--bg-color); flex-grow: 1; padding: 15px;
+            border-radius: 4px; overflow-y: auto; font-family: monospace; font-size: 14px;
+        }
+        .log-line { margin-bottom: 8px; border-bottom: 1px solid #333; padding-bottom: 4px; }
+    </style>
+</head>
+<body>
+
+    <!-- Lado Esquerdo: Gerenciamento de Botões e Configurações -->
+    <div class="panel">
+        <h2>YouTube</h2>
+        <button id="btnYouTube" onclick="vincularYouTube()" style="background: #ff0000; margin-bottom: 10px;">
+            🔴 Vincular Conta YouTube
+        </button>
+        <div id="youtubeStatus" style="font-size: 0.8em; margin-bottom: 20px; color:#aaa; text-align: center;"></div>
+
+        <h2>⚙️ Conexão e Servidor</h2>
+        <div class="form-grid">
+            <div class="form-group" style="margin-bottom: 0;">
+                <label>IP do OBS</label>
+                <input type="text" id="configIp" placeholder="127.0.0.1">
+            </div>
+            <div class="form-group" style="margin-bottom: 0;">
+                <label>Porta do OBS</label>
+                <input type="number" id="configPortaObs" placeholder="4455">
+            </div>
+            <div class="form-group" style="margin-bottom: 0;">
+                <label>Usuário do OBS</label>
+                <input type="text" id="configUser" placeholder="(Opcional no OBS v5)">
+            </div>
+            <div class="form-group" style="margin-bottom: 0;">
+                <label>Senha do OBS</label>
+                <input type="password" id="configSenha">
+            </div>
+            <div class="form-group" style="margin-bottom: 0; grid-column: span 2;">
+                <label>Porta do Servidor (Aplicativo)</label>
+                <input type="number" id="configPortaApp" placeholder="3000">
+            </div>
+        </div>
+        <button class="btn-save" onclick="salvarConfiguracoes()">💾 Salvar Configurações</button>
+
+        <h2>🛠️ Criar Botões do OBS</h2>
+        <div class="form-grid">
+            <div class="form-group" style="margin-bottom: 0;">
+                <label>Ícone</label>
+                <input type="text" id="btnIcon" placeholder="Ex: 🎤" maxlength="2">
+            </div>
+            <div class="form-group" style="margin-bottom: 0;">
+                <label>Nome no Botão</label>
+                <input type="text" id="btnLabel" placeholder="Ex: Pregação">
+            </div>
+        </div>
+        <div class="form-group">
+            <label>Título Real no YouTube</label>
+            <input type="text" id="btnTitle" placeholder="Ex: Início da Pregação da Palavra">
+        </div>
+        <button onclick="adicionarBotao()">Adicionar Botão</button>
+
+        <div class="btn-list" id="botoesSalvos">
+            <!-- Botões aparecerão aqui -->
+        </div>
+    </div>
+
+    <!-- Lado Direito: Visualização em Tempo Real -->
+    <div class="panel">
+        <h2>⏱️ Capítulos Registrados</h2>
+        <div class="log-container" id="logContainer">
+            <div style="color: #6272a4;">Aguardando o início da transmissão no OBS...</div>
+        </div>
+    </div>
+
+    <script>
+        const { ipcRenderer } = require('electron');
+        let botoes = [];
+
+        // --- INTEGRAÇÃO YOUTUBE ---
+        function vincularYouTube() {
+            const statusDiv = document.getElementById('youtubeStatus');
+            statusDiv.innerHTML = "Aguardando login no navegador...";
+            ipcRenderer.send('vincular-youtube');
+        }
+
+        ipcRenderer.on('youtube-status', (event, response) => {
+            const statusDiv = document.getElementById('youtubeStatus');
+            if (response.success) {
+                statusDiv.innerHTML = '<span style="color:#50fa7b;">✅ Conta vinculada com sucesso!</span>';
+            } else {
+                statusDiv.innerHTML = `<span style="color:#ff5555;">❌ Erro: ${response.message}</span>`;
+            }
+        });
+
+        // --- CONFIGURAÇÕES DE SERVIDOR E OBS ---
+        async function inicializar() {
+            try {
+                // Solicita os dados do main.js
+                const dados = await ipcRenderer.invoke('obter-dados-store');
+                
+                document.getElementById('configIp').value = dados.obsIp || '127.0.0.1';
+                document.getElementById('configPortaObs').value = dados.obsPort || '4455';
+                document.getElementById('configUser').value = dados.obsUser || '';
+                document.getElementById('configSenha').value = dados.obsPassword || '';
+                document.getElementById('configPortaApp').value = dados.appPort || '3000';
+                
+                botoes = dados.botoes || [];
+                renderizarBotoes();
+            } catch (error) {
+                console.error("Erro ao carregar configurações:", error);
+            }
+        }
+
+        function salvarConfiguracoes() {
+            const config = {
+                obsIp: document.getElementById('configIp').value,
+                obsPort: document.getElementById('configPortaObs').value,
+                obsUser: document.getElementById('configUser').value,
+                obsPassword: document.getElementById('configSenha').value,
+                appPort: document.getElementById('configPortaApp').value
+            };
+            
+            // Envia para o main.js salvar no banco
+            ipcRenderer.send('salvar-configuracoes', config);
+            alert('Configurações salvas com sucesso! O aplicativo tentará reconectar ao OBS.');
+        }
+
+        // --- GERENCIAMENTO DE BOTÕES ---
+        function renderizarBotoes() {
+            const container = document.getElementById('botoesSalvos');
+            container.innerHTML = botoes.map((btn, index) => `
+                <div class="btn-item">
+                    <span>${btn.icone} <b>${btn.label}</b><br><small style="color:#aaa;">${btn.titulo}</small></span>
+                    <button onclick="removerBotao(${index})">🗑️</button>
+                </div>
+            `).join('');
+        }
+
+        function adicionarBotao() {
+            const icone = document.getElementById('btnIcon').value || '📌';
+            const label = document.getElementById('btnLabel').value;
+            const titulo = document.getElementById('btnTitle').value;
+
+            if(!label || !titulo) {
+                alert('Preencha pelo menos o Nome do Botão e o Título!');
+                return;
+            }
+
+            botoes.push({ id: 'btn_' + Date.now(), icone, label, titulo });
+            salvarBotoes();
+            
+            document.getElementById('btnIcon').value = '';
+            document.getElementById('btnLabel').value = '';
+            document.getElementById('btnTitle').value = '';
+        }
+
+        function removerBotao(index) {
+            botoes.splice(index, 1);
+            salvarBotoes();
+        }
+
+        function salvarBotoes() {
+            // Envia para o main.js salvar no banco
+            ipcRenderer.send('salvar-botoes', botoes);
+            renderizarBotoes();
+        }
+
+        // --- LOGS EM TEMPO REAL ---
+        ipcRenderer.on('novo-log', (event, log) => {
+            const logContainer = document.getElementById('logContainer');
+            if (logContainer.innerHTML.includes('Aguardando')) logContainer.innerHTML = ''; 
+            
+            const linha = document.createElement('div');
+            linha.className = 'log-line';
+            linha.innerText = log;
+            logContainer.appendChild(linha);
+            logContainer.scrollTop = logContainer.scrollHeight; 
+        });
+
+        // Carrega as informações ao abrir o painel
+        inicializar();
+    </script>
+</body>
+</html>
