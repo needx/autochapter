@@ -23,32 +23,43 @@ let tray = null; // Ícone ao lado do relógio
 // ---------------------------------------------------------
 expressApp.post('/api/holyrics', async (req, res) => {
     try {
-        const holyricsUrl = store.get('holyricsUrl', 'http://localhost:80/view/text');
+        // 1. VERIFICA SE VEIO UM COMANDO PERSONALIZADO VIA JSON
+        const { tipo, titulo, icone } = req.body;
+
+        // Se o Holyrics enviar um JSON com tipo "custom", usamos ele diretamente
+        if (tipo === 'custom' && titulo) {
+            const iconeFinal = icone || '📌'; // Usa o ícone do JSON ou 📌 por padrão
+            registrarCapitulo(iconeFinal, titulo);
+            return res.json({ success: true, titulo: titulo, origem: 'json_custom' });
+        }
+
+        // 2. SE NÃO FOR CUSTOMIZADO, CONTINUA COM A LEITURA DO HTML (Música e Bíblia)
+        const holyricsUrl = store.get('holyricsUrl', 'http://localhost:8080');
         const response = await fetch(holyricsUrl);
         const html = await response.text();
 
         let tituloExtraido = "";
-        let icone = "📌"; // Ícone padrão
+        let iconeHtml = "📌"; 
 
-        // 1. Busca por Música
+        // Busca por Música
         const matchMusicTitle = html.match(/<div id="music_title"[^>]*>(.*?)<\/div>/);
         const matchMusicArtist = html.match(/<div id="music_artist"[^>]*>(.*?)<\/div>/);
         
-        // 2. Busca por Bíblia
+        // Busca por Bíblia
         const matchBible = html.match(/<span class="header bible-header-custom"[^>]*>(.*?)<\/span>/);
 
-        // 3. Lógica de decisão
+        // Lógica de decisão
         if (matchMusicTitle && matchMusicTitle[1].trim() !== '') {
             const title = matchMusicTitle[1].trim();
             const artist = (matchMusicArtist && matchMusicArtist[1].trim() !== '') 
                 ? ` - ${matchMusicArtist[1].trim()}` 
                 : '';
             tituloExtraido = title + artist;
-            icone = "🎵";
+            iconeHtml = "🎵";
         } 
         else if (matchBible && matchBible[1].trim() !== '') {
             tituloExtraido = matchBible[1].trim();
-            icone = "📖";
+            iconeHtml = "📖";
         } 
         else if (html.includes('empty_slide')) {
             // Se a tela estiver limpa/vazia, ignoramos silenciosamente
@@ -59,12 +70,12 @@ expressApp.post('/api/holyrics', async (req, res) => {
         }
 
         // Registra o capítulo no sistema
-        registrarCapitulo(icone, tituloExtraido);
-        res.json({ success: true, titulo: tituloExtraido });
+        registrarCapitulo(iconeHtml, tituloExtraido);
+        res.json({ success: true, titulo: tituloExtraido, origem: 'html_scraper' });
 
     } catch (error) {
-        console.error("❌ Erro ao buscar dados no HTML do Holyrics:", error.message);
-        res.status(500).json({ success: false, error: "Não foi possível conectar ao plugin do Holyrics." });
+        console.error("❌ Erro ao processar gatilho do Holyrics:", error.message);
+        res.status(500).json({ success: false, error: "Erro interno ao processar o gatilho." });
     }
 });
 
