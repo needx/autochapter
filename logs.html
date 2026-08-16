@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <title>Console do Sistema</title>
+    <style>
+        body {
+            background-color: #1e1e2e;
+            color: #f8f8f2;
+            font-family: 'Consolas', 'Courier New', monospace;
+            padding: 15px;
+            margin: 0;
+            overflow-y: auto;
+            height: 100vh;
+            box-sizing: border-box;
+            font-size: 13px;
+            line-height: 1.4;
+        }
+        .log-line {
+            margin-bottom: 4px;
+            border-bottom: 1px solid #333;
+            padding-bottom: 4px;
+            word-wrap: break-word;
+        }
+        .log-error {
+            color: #ff5555;
+            background-color: rgba(255, 85, 85, 0.1);
+        }
+        .log-info {
+            color: #8be9fd;
+        }
+    </style>
+</head>
+<body>
+    <div id="logContainer">
+        <div style="color: #6272a4;">[Sistema] Terminal inicializado. Aguardando eventos...</div>
+    </div>
+
+    <script>
+        const { ipcRenderer } = require('electron');
+        const container = document.getElementById('logContainer');
+
+        function appendLog(log) {
+            // Remove a mensagem de espera inicial, se houver
+            if (container.innerHTML.includes('Terminal inicializado')) {
+                container.innerHTML = '';
+            }
+            
+            const linha = document.createElement('div');
+            linha.className = `log-line ${log.type === 'error' ? 'log-error' : 'log-info'}`;
+            linha.innerText = log.text;
+            container.appendChild(linha);
+            
+            // Rola sempre para o final
+            window.scrollTo(0, document.body.scrollHeight);
+        }
+
+        // Recebe o histórico assim que a janela abre
+        ipcRenderer.on('log-history', (event, history) => {
+            container.innerHTML = '';
+            history.forEach(appendLog);
+        });
+
+        // Recebe logs em tempo real
+        ipcRenderer.on('system-log', (event, log) => {
+            appendLog(log);
+        });
+    </script>
+</body>
+</html>

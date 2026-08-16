@@ -5,6 +5,7 @@ const http = require('http');
 const url = require('url');
 const { app, shell } = require('electron'); // Importamos o app do electron para pegar os caminhos do sistema
 require('dotenv').config();
+let authServer = null; 
 
 const SCOPES = ['https://www.googleapis.com/auth/youtube.force-ssl'];
 
@@ -19,8 +20,6 @@ const TOKEN_PATH = path.join(app.getPath('userData'), 'token.json');
 /**
  * Autentica e retorna o cliente da API do YouTube
  */
-// Adicione esta variável no topo do arquivo youtube.js, logo abaixo dos requires
-let authServer = null; 
 
 /**
  * Autentica e retorna o cliente da API do YouTube

@@ -18,6 +18,47 @@ let capitulos = [];
 let store;
 let tray = null; // Ícone ao lado do relógio
 
+// ==========================================
+// INTERCEPTADOR DE LOGS DO SISTEMA
+// ==========================================
+const logHistory = [];
+const MAX_LOGS = 200; // Guarda as últimas 200 linhas
+
+const originalConsoleLog = console.log;
+const originalConsoleError = console.error;
+
+function broadcastLog(level, ...args) {
+    // Transforma os argumentos em texto (para objetos e strings)
+    const msg = args.map(a => typeof a === 'object' ? JSON.stringify(a) : a).join(' ');
+
+    // Adiciona timestamp
+    const time = new Date().toLocaleTimeString('pt-BR');
+    const prefix = level === 'error' ? '❌' : 'ℹ️';
+    const logLine = `[${time}] ${prefix} ${msg}`;
+
+    // Salva no histórico
+    logHistory.push({ type: level, text: logLine });
+    if (logHistory.length > MAX_LOGS) logHistory.shift();
+
+    // Envia para todas as janelas abertas
+    BrowserWindow.getAllWindows().forEach(win => {
+        try {
+            win.webContents.send('system-log', { type: level, text: logLine });
+        } catch (e) { }
+    });
+}
+
+// Substitui o console original
+console.log = function (...args) {
+    originalConsoleLog.apply(console, args);
+    broadcastLog('info', ...args);
+};
+
+console.error = function (...args) {
+    originalConsoleError.apply(console, args);
+    broadcastLog('error', ...args);
+};
+
 // ---------------------------------------------------------
 // 1. SERVIDOR EXPRESS (Dock e Holyrics)
 // ---------------------------------------------------------
@@ -39,32 +80,32 @@ expressApp.post('/api/holyrics', async (req, res) => {
         const html = await response.text();
 
         let tituloExtraido = "";
-        let iconeHtml = "📌"; 
+        let iconeHtml = "📌";
 
         // Busca por Música
         const matchMusicTitle = html.match(/<div id="music_title"[^>]*>(.*?)<\/div>/);
         const matchMusicArtist = html.match(/<div id="music_artist"[^>]*>(.*?)<\/div>/);
-        
+
         // Busca por Bíblia
         const matchBible = html.match(/<span class="header bible-header-custom"[^>]*>(.*?)<\/span>/);
 
         // Lógica de decisão
         if (matchMusicTitle && matchMusicTitle[1].trim() !== '') {
             const title = matchMusicTitle[1].trim();
-            const artist = (matchMusicArtist && matchMusicArtist[1].trim() !== '') 
-                ? ` - ${matchMusicArtist[1].trim()}` 
+            const artist = (matchMusicArtist && matchMusicArtist[1].trim() !== '')
+                ? ` - ${matchMusicArtist[1].trim()}`
                 : '';
             tituloExtraido = title + artist;
             iconeHtml = "🎵";
-        } 
+        }
         else if (matchBible && matchBible[1].trim() !== '') {
             tituloExtraido = matchBible[1].trim();
             iconeHtml = "📖";
-        } 
+        }
         else if (html.includes('empty_slide')) {
             // Se a tela estiver limpa/vazia, ignoramos silenciosamente
             return res.json({ success: true, message: "Tela vazia ignorada." });
-        } 
+        }
         else {
             return res.json({ success: false, message: "Nenhum dado reconhecido no HTML." });
         }
@@ -123,8 +164,8 @@ function registrarCapitulo(icone, titulo) {
     atualizarDescricaoYouTube(capitulos);
 }
 
-
 let isReconnecting = false;
+
 async function conectarOBS() {
     if (!store) return; // Aguarda o store iniciar
 
@@ -137,6 +178,24 @@ async function conectarOBS() {
         await obs.connect(url, senha);
         console.log(`✅ Conectado ao OBS em ${url}`);
 
+        // ==========================================
+        // VERIFICA SE A LIVE JÁ ESTÁ RODANDO 
+        // ==========================================
+        try {
+            const status = await obs.call('GetStreamStatus');
+            if (status.outputActive) {
+                if (!streamStartTime) {
+                    // Calcula a hora exata que a live começou (Agora - Duração da live)
+                    streamStartTime = new Date(Date.now() - status.outputDuration);
+                    console.log(`▶️ OBS já estava transmitindo! Tempo recuperado com sucesso.`);
+                }
+            } else {
+                streamStartTime = null;
+            }
+        } catch (err) {
+            console.error("Aviso: Não foi possível checar o status atual do OBS.");
+        }
+
         // Evita duplicar listeners se reconectar
         obs.removeAllListeners('StreamStateChanged');
         obs.removeAllListeners('ConnectionClosed');
@@ -145,9 +204,11 @@ async function conectarOBS() {
             if (data.outputActive) {
                 streamStartTime = new Date();
                 capitulos = [];
+                console.log("▶️ Transmissão iniciada no OBS.");
                 registrarCapitulo('▶️', 'Início da Transmissão');
             } else {
                 streamStartTime = null;
+                console.log("⏹️ Transmissão encerrada no OBS.");
             }
         });
 
@@ -157,14 +218,14 @@ async function conectarOBS() {
                 isReconnecting = false;
                 conectarOBS();
             } else {
-                console.log("OBS fechado. Encerrando o aplicativo marcador...");
-                app.quit();
+                console.error("❌ OBS fechado ou conexão perdida. Tentando reconectar em 5s...");
+                setTimeout(conectarOBS, 5000);
             }
         });
 
     } catch (error) {
         console.error(`❌ OBS não encontrado em ${url} ou senha errada. Tentando em 5s...`);
-        // Tenta novamente em 5 segundos, lendo os dados atualizados
+        // Tenta novamente em 5 segundos
         setTimeout(conectarOBS, 5000);
     }
 }
@@ -272,18 +333,38 @@ ipcMain.handle('obter-dados-store', () => {
 // Salva as configurações e reconecta o OBS
 ipcMain.on('salvar-configuracoes', (event, config) => {
     if (!store) return;
-    
+
     store.set('obsIp', config.obsIp);
     store.set('obsPort', config.obsPort);
     store.set('obsUser', config.obsUser);
     store.set('obsPassword', config.obsPassword);
     store.set('appPort', config.appPort);
     store.set('holyricsUrl', config.holyricsUrl);
-    
+
     console.log("Configurações atualizadas via painel Admin.");
     isReconnecting = true;
-    
+
     try {
         obs.disconnect(); // Força a desconexão para aplicar a nova senha
     } catch (e) { }
+});
+
+ipcMain.on('abrir-janela-logs', () => {
+    const logsWindow = new BrowserWindow({
+        width: 700,
+        height: 500,
+        title: "Console do Sistema",
+        autoHideMenuBar: true,
+        webPreferences: {
+            nodeIntegration: true,
+            contextIsolation: false
+        }
+    });
+    
+    logsWindow.loadFile('logs.html');
+
+    // Quando a janela terminar de carregar, envia o histórico de logs
+    logsWindow.webContents.on('did-finish-load', () => {
+        logsWindow.webContents.send('log-history', logHistory);
+    });
 });

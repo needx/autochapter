@@ -218,7 +218,13 @@
 
     <!-- Lado Direito: Visualização em Tempo Real -->
     <div class="panel">
-        <h2>⏱️ Capítulos Registrados</h2>
+        <div
+            style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border); padding-bottom: 10px; margin-bottom: 10px;">
+            <h2 style="margin: 0; border: none; padding: 0;">⏱️ Capítulos Registrados</h2>
+            <button onclick="abrirJanelaLogs()"
+                style="width: auto; background-color: #44475a; padding: 6px 12px; font-size: 12px; border-radius: 4px;">📄
+                Tela Cheia</button>
+        </div>
         <div class="log-container" id="logContainer">
             <div style="color: #6272a4;">Aguardando o início da transmissão no OBS...</div>
         </div>
@@ -289,7 +295,7 @@
                 </div>
             `).join('');
         }
-       
+
         function adicionarBotao() {
             // Alterado de 'btnIcon' para 'novoIcone'
             const icone = document.getElementById('novoIcone').value || '📌';
@@ -320,7 +326,10 @@
             ipcRenderer.send('salvar-botoes', botoes);
             renderizarBotoes();
         }
-
+        
+        function abrirJanelaLogs() {
+            ipcRenderer.send('abrir-janela-logs');
+        }
         // --- LOGS EM TEMPO REAL ---
         ipcRenderer.on('novo-log', (event, log) => {
             const logContainer = document.getElementById('logContainer');
