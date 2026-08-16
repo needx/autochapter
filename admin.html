@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -14,6 +15,7 @@
             --danger: #ff5555;
             --border: #44475a;
         }
+
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             background-color: var(--bg-color);
@@ -26,48 +28,117 @@
             height: 100vh;
             box-sizing: border-box;
         }
+
         .panel {
             background-color: var(--panel-bg);
             border-radius: 8px;
             padding: 20px;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
             display: flex;
             flex-direction: column;
             overflow-y: auto;
         }
-        h2 { margin-top: 0; color: var(--primary); border-bottom: 1px solid var(--border); padding-bottom: 10px;}
-        
+
+        h2 {
+            margin-top: 0;
+            color: var(--primary);
+            border-bottom: 1px solid var(--border);
+            padding-bottom: 10px;
+        }
+
         /* Formulários */
-        .form-group { margin-bottom: 15px; }
-        .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 15px; }
-        label { display: block; font-size: 13px; margin-bottom: 5px; color: #ccc; }
+        .form-group {
+            margin-bottom: 15px;
+        }
+
+        .form-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+
+        label {
+            display: block;
+            font-size: 13px;
+            margin-bottom: 5px;
+            color: #ccc;
+        }
+
         input {
-            width: 100%; padding: 10px; border-radius: 4px; border: 1px solid var(--border);
-            background: var(--bg-color); color: var(--text-color); box-sizing: border-box;
+            width: 100%;
+            padding: 10px;
+            border-radius: 4px;
+            border: 1px solid var(--border);
+            background: var(--bg-color);
+            color: var(--text-color);
+            box-sizing: border-box;
         }
+
         button {
-            background-color: var(--primary); color: #fff; border: none; padding: 10px 15px;
-            border-radius: 4px; cursor: pointer; font-weight: bold; width: 100%; transition: 0.2s;
+            background-color: var(--primary);
+            color: #fff;
+            border: none;
+            padding: 10px 15px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: bold;
+            width: 100%;
+            transition: 0.2s;
         }
-        button:hover { filter: brightness(1.1); }
-        .btn-save { background-color: var(--success); color: #1e1e2e; margin-bottom: 20px; }
-        
+
+        button:hover {
+            filter: brightness(1.1);
+        }
+
+        .btn-save {
+            background-color: var(--success);
+            color: #1e1e2e;
+            margin-bottom: 20px;
+        }
+
         /* Lista de Botões */
-        .btn-list { flex-grow: 1; margin-top: 20px; }
-        .btn-item {
-            display: flex; justify-content: space-between; align-items: center;
-            background: var(--bg-color); padding: 10px; border-radius: 4px; margin-bottom: 10px;
+        .btn-list {
+            flex-grow: 1;
+            margin-top: 20px;
         }
-        .btn-item button { background-color: var(--danger); width: auto; padding: 5px 10px; color: white;}
+
+        .btn-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: var(--bg-color);
+            padding: 10px;
+            border-radius: 4px;
+            margin-bottom: 10px;
+        }
+
+        .btn-item button {
+            background-color: var(--danger);
+            width: auto;
+            padding: 5px 10px;
+            color: white;
+        }
 
         /* Logs */
         .log-container {
-            background: var(--bg-color); flex-grow: 1; padding: 15px;
-            border-radius: 4px; overflow-y: auto; font-family: monospace; font-size: 14px;
+            background: var(--bg-color);
+            flex-grow: 1;
+            padding: 15px;
+            border-radius: 4px;
+            overflow-y: auto;
+            font-family: monospace;
+            font-size: 14px;
         }
-        .log-line { margin-bottom: 8px; border-bottom: 1px solid #333; padding-bottom: 4px; }
+
+        .log-line {
+            margin-bottom: 8px;
+            border-bottom: 1px solid #333;
+            padding-bottom: 4px;
+        }
     </style>
 </head>
+
 <body>
 
     <!-- Lado Esquerdo: Gerenciamento de Botões e Configurações -->
@@ -109,9 +180,25 @@
 
         <h2>🛠️ Criar Botões do OBS</h2>
         <div class="form-grid">
-            <div class="form-group" style="margin-bottom: 0;">
+            <div class="form-group" style="position: relative;">
                 <label>Ícone</label>
-                <input type="text" id="btnIcon" placeholder="Ex: 🎤" maxlength="2">
+                <div style="display: flex; gap: 8px;">
+                    <input type="text" id="novoIcone" placeholder="📌" maxlength="2"
+                        style="width: 60px; text-align: center; font-size: 18px;">
+                    <!-- Botão para abrir o teclado -->
+                    <button type="button" id="btnEmoji"
+                        style="cursor: pointer; background: #3b82f6; border: none; border-radius: 4px; padding: 0 15px; font-size: 18px; color: white; transition: background 0.2s;"
+                        onmouseover="this.style.backgroundColor='#2563eb'"
+                        onmouseout="this.style.backgroundColor='#3b82f6'">
+                        😀
+                    </button>
+                </div>
+
+                <!-- Teclado de Emojis Oculto -->
+                <div id="emojiPicker"
+                    style="display: none; position: absolute; top: 75px; left: 0; background: #2b2b2b; border: 1px solid #444; border-radius: 8px; padding: 10px; width: 220px; grid-template-columns: repeat(5, 1fr); gap: 5px; z-index: 100; box-shadow: 0 8px 16px rgba(0,0,0,0.5);">
+                    <!-- Emojis serão gerados aqui pelo JavaScript -->
+                </div>
             </div>
             <div class="form-group" style="margin-bottom: 0;">
                 <label>Nome no Botão</label>
@@ -162,7 +249,7 @@
             try {
                 // Solicita os dados do main.js
                 const dados = await ipcRenderer.invoke('obter-dados-store');
-                
+
                 document.getElementById('configIp').value = dados.obsIp || '127.0.0.1';
                 document.getElementById('configPortaObs').value = dados.obsPort || '4455';
                 document.getElementById('configUser').value = dados.obsUser || '';
@@ -186,7 +273,7 @@
                 appPort: document.getElementById('configPortaApp').value,
                 holyricsUrl: document.getElementById('configHolyrics').value
             };
-            
+
             // Envia para o main.js salvar no banco
             ipcRenderer.send('salvar-configuracoes', config);
             alert('Configurações salvas com sucesso! O aplicativo tentará reconectar ao OBS.');
@@ -202,21 +289,23 @@
                 </div>
             `).join('');
         }
-
+       
         function adicionarBotao() {
-            const icone = document.getElementById('btnIcon').value || '📌';
+            // Alterado de 'btnIcon' para 'novoIcone'
+            const icone = document.getElementById('novoIcone').value || '📌';
             const label = document.getElementById('btnLabel').value;
             const titulo = document.getElementById('btnTitle').value;
 
-            if(!label || !titulo) {
+            if (!label || !titulo) {
                 alert('Preencha pelo menos o Nome do Botão e o Título!');
                 return;
             }
 
             botoes.push({ id: 'btn_' + Date.now(), icone, label, titulo });
             salvarBotoes();
-            
-            document.getElementById('btnIcon').value = '';
+
+            // Alterado de 'btnIcon' para 'novoIcone'
+            document.getElementById('novoIcone').value = '';
             document.getElementById('btnLabel').value = '';
             document.getElementById('btnTitle').value = '';
         }
@@ -235,17 +324,61 @@
         // --- LOGS EM TEMPO REAL ---
         ipcRenderer.on('novo-log', (event, log) => {
             const logContainer = document.getElementById('logContainer');
-            if (logContainer.innerHTML.includes('Aguardando')) logContainer.innerHTML = ''; 
-            
+            if (logContainer.innerHTML.includes('Aguardando')) logContainer.innerHTML = '';
+
             const linha = document.createElement('div');
             linha.className = 'log-line';
             linha.innerText = log;
             logContainer.appendChild(linha);
-            logContainer.scrollTop = logContainer.scrollHeight; 
+            logContainer.scrollTop = logContainer.scrollHeight;
+        });
+
+        // ==========================================
+        // TECLADO DE EMOJIS CUSTOMIZADO
+        // ==========================================
+        const listaEmojis = [
+            "📌", "🎵", "📖", "🎤", "🎸", "🎹", "🥁", "🎬", "⛪", "🙏",
+            "⚠️", "✅", "🔥", "💡", "💬", "🙋", "✝️", "🕊️", "⭐", "🔴",
+            "🎥", "📱", "🎉", "👏", "🙌"
+        ];
+
+        const emojiPicker = document.getElementById('emojiPicker');
+        const inputIcone = document.getElementById('novoIcone');
+        const btnEmoji = document.getElementById('btnEmoji');
+
+        // Constrói os botões de emoji dentro do painel
+        emojiPicker.innerHTML = listaEmojis.map(emoji => `
+    <div style="cursor: pointer; text-align: center; font-size: 20px; padding: 6px; border-radius: 4px; transition: background 0.2s;" 
+         onmouseover="this.style.background='#4c4c4c'" 
+         onmouseout="this.style.background='transparent'" 
+         onclick="selecionarEmoji('${emoji}')">
+        ${emoji}
+    </div>
+`).join('');
+
+        // Abre/Fecha o teclado ao clicar no botão
+        btnEmoji.addEventListener('click', (e) => {
+            e.stopPropagation(); // Evita que o clique feche imediatamente
+            const estaAberto = emojiPicker.style.display === 'grid';
+            emojiPicker.style.display = estaAberto ? 'none' : 'grid';
+        });
+
+        // Função chamada ao clicar em um emoji
+        function selecionarEmoji(emoji) {
+            inputIcone.value = emoji;
+            emojiPicker.style.display = 'none'; // Fecha após escolher
+        }
+
+        // Fecha o teclado se o usuário clicar em qualquer outro lugar da tela
+        document.addEventListener('click', (e) => {
+            if (!emojiPicker.contains(e.target) && e.target !== btnEmoji) {
+                emojiPicker.style.display = 'none';
+            }
         });
 
         // Carrega as informações ao abrir o painel
         inicializar();
     </script>
 </body>
+
 </html>
