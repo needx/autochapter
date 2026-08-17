@@ -32,12 +32,16 @@
       {
         "from": "autostart_marcadores.lua",
         "to": "autostart_marcadores.lua",
-        "filter": ["**/*"]
+        "filter": [
+          "**/*"
+        ]
       },
       {
         "from": "credentials.json",
         "to": "credentials.json",
-        "filter": ["**/*"]
+        "filter": [
+          "**/*"
+        ]
       }
     ],
     "win": {
@@ -55,6 +59,7 @@
   "license": "ISC",
   "type": "commonjs",
   "dependencies": {
+    "cheerio": "^1.2.0",
     "cors": "^2.8.6",
     "dotenv": "^17.4.2",
     "electron-store": "^11.0.2",

@@ -2,6 +2,7 @@ const { app, BrowserWindow, ipcMain, Tray, Menu } = require('electron');
 const path = require('path');
 const express = require('express');
 const cors = require('cors');
+const cheerio = require('cheerio');
 const { OBSWebSocket } = require('obs-websocket-js');
 const { atualizarDescricaoYouTube, loginManualYouTube } = require('./youtube');
 
@@ -67,56 +68,74 @@ expressApp.post('/api/holyrics', async (req, res) => {
         // 1. VERIFICA SE VEIO UM COMANDO PERSONALIZADO VIA JSON
         const { tipo, titulo, icone } = req.body;
 
-        // Se o Holyrics enviar um JSON com tipo "custom", usamos ele diretamente
         if (tipo === 'custom' && titulo) {
-            const iconeFinal = icone || '📌'; // Usa o ícone do JSON ou 📌 por padrão
+            const iconeFinal = icone || '📌';
             registrarCapitulo(iconeFinal, titulo);
             return res.json({ success: true, titulo: titulo, origem: 'json_custom' });
         }
 
-        // 2. SE NÃO FOR CUSTOMIZADO, CONTINUA COM A LEITURA DO HTML (Música e Bíblia)
-        const holyricsUrl = store.get('holyricsUrl', 'http://localhost:8080');
-        const response = await fetch(holyricsUrl);
-        const html = await response.text();
+        // 2. MONTAGEM INTELIGENTE DA URL DO JSON
+        const configUrl = store.get('holyricsUrl', 'http://localhost:8080');
+        let jsonUrl = '';
+        
+        try {
+            // Extrai apenas a base (http://ip:porta) não importa o que o usuário digitou no painel
+            const parsedUrl = new URL(configUrl);
+            jsonUrl = `${parsedUrl.protocol}//${parsedUrl.host}/view/text.json`;
+        } catch (e) {
+            jsonUrl = 'http://localhost:8080/view/text.json';
+        }
+
+        console.log(`🔍 [Holyrics] Buscando dados invisíveis em: ${jsonUrl}`);
+
+        const response = await fetch(jsonUrl);
+        const textResponse = await response.text(); // Pega como texto primeiro para evitar quebra
+
+        let data;
+        try {
+            // Tenta converter para JSON. Se for HTML (erro), ele cai no catch
+            data = JSON.parse(textResponse);
+        } catch (err) {
+            console.error(`❌ [Holyrics] A página acessada não é um JSON. Verifique se o plugin está rodando na porta correta.`);
+            return res.status(400).json({ success: false, message: "A URL não retornou os dados esperados." });
+        }
+
+        // 3. EXTRAÇÃO DOS DADOS
+        // O Holyrics "embrulha" as variáveis dentro de um objeto chamado "map"
+        const holyricsMap = data.map || {};
+
+        const type = holyricsMap['type'] || 'empty';
+        const musicTitle = holyricsMap['$system_var_music_title'] || '';
+        const musicArtist = holyricsMap['$system_var_music_artist'] || '';
+        const bibleHeader = holyricsMap['header'] || '';
 
         let tituloExtraido = "";
-        let iconeHtml = "📌";
+        let iconeHtml = "📌"; 
 
-        // Busca por Música
-        const matchMusicTitle = html.match(/<div id="music_title"[^>]*>(.*?)<\/div>/);
-        const matchMusicArtist = html.match(/<div id="music_artist"[^>]*>(.*?)<\/div>/);
-
-        // Busca por Bíblia
-        const matchBible = html.match(/<span class="header bible-header-custom"[^>]*>(.*?)<\/span>/);
-
-        // Lógica de decisão
-        if (matchMusicTitle && matchMusicTitle[1].trim() !== '') {
-            const title = matchMusicTitle[1].trim();
-            const artist = (matchMusicArtist && matchMusicArtist[1].trim() !== '')
-                ? ` - ${matchMusicArtist[1].trim()}`
-                : '';
-            tituloExtraido = title + artist;
+        if (type === 'MUSIC' && musicTitle !== '') {
+            const artist = musicArtist !== '' ? ` - ${musicArtist}` : '';
+            tituloExtraido = musicTitle + artist;
             iconeHtml = "🎵";
-        }
-        else if (matchBible && matchBible[1].trim() !== '') {
-            tituloExtraido = matchBible[1].trim();
+        } 
+        else if (type === 'BIBLE' && bibleHeader !== '') {
+            // O header às vezes vem com <span>, removemos as tags HTML para limpar o texto
+            tituloExtraido = bibleHeader.replace(/<[^>]*>?/gm, '').trim();
             iconeHtml = "📖";
-        }
-        else if (html.includes('empty_slide')) {
-            // Se a tela estiver limpa/vazia, ignoramos silenciosamente
+        } 
+        else if (type === 'empty' || type === null || type === '') {
             return res.json({ success: true, message: "Tela vazia ignorada." });
-        }
+        } 
         else {
-            return res.json({ success: false, message: "Nenhum dado reconhecido no HTML." });
+            return res.json({ success: false, message: `Tipo de tela '${type}' não mapeado ou ignorado.` });
         }
 
-        // Registra o capítulo no sistema
+        // 4. REGISTRA O CAPÍTULO
         registrarCapitulo(iconeHtml, tituloExtraido);
-        res.json({ success: true, titulo: tituloExtraido, origem: 'html_scraper' });
+        res.json({ success: true, titulo: tituloExtraido, origem: 'json_scraper' });
 
     } catch (error) {
-        console.error("❌ Erro ao processar gatilho do Holyrics:", error.message);
-        res.status(500).json({ success: false, error: "Erro interno ao processar o gatilho." });
+        console.error("❌ Erro de conexão com o Holyrics:", error.message);
+        res.status(500).json({ success: false, error: "Não foi possível acessar a API do Holyrics." });
     }
 });
 
