@@ -1,5 +1,3 @@
-Aqui está o código completo do arquivo `README.md` pronto para você copiar e salvar no seu projeto:
-
 ```markdown
 # 🎥 OBS Auto Chapters (Gerenciador de Capítulos)
 
