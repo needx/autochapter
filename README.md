@@ -43,12 +43,11 @@ Basta criar um gatilho de Requisição HTTP (POST) no Holyrics apontando para `h
   "tipo": "musica",
 }
 
-```json
 {
   "tipo": "biblia",
 }
 ```
-
+---
 ### Modo 2: Comandos Personalizados (JSON)
 Para enviar comandos específicos que não estão no telão (ex: Pregação, Avisos, Oração), envie um gatilho HTTP POST para a mesma URL (`http://localhost:3000/api/holyrics`) com o seguinte corpo em JSON:
 
