@@ -5,7 +5,7 @@ const http = require('http');
 const url = require('url');
 const { app, shell } = require('electron'); // Importamos o app do electron para pegar os caminhos do sistema
 require('dotenv').config();
-let authServer = null; 
+let authServer = null;
 
 const SCOPES = ['https://www.googleapis.com/auth/youtube.force-ssl'];
 
@@ -44,7 +44,7 @@ async function getAuthenticatedClient() {
     return new Promise((resolve, reject) => {
         // Se já existir um servidor aguardando login, fecha ele primeiro
         if (authServer) {
-            try { authServer.close(); } catch (e) {}
+            try { authServer.close(); } catch (e) { }
         }
 
         authServer = http.createServer(async (req, res) => {
@@ -52,9 +52,9 @@ async function getAuthenticatedClient() {
                 if (req.url.startsWith('/')) {
                     const qs = new url.URL(req.url, redirectUri).searchParams;
                     const code = qs.get('code');
-                    
+
                     res.end('<h1>Autenticacao concluida!</h1><p>Pode fechar esta janela e voltar ao aplicativo.</p>');
-                    
+
                     if (authServer) authServer.close(); // Fecha o servidor com sucesso
 
                     if (code) {
@@ -117,7 +117,7 @@ async function atualizarDescricaoYouTube(capitulosArray) {
 
         const descricaoAtual = snippet.description || '';
         const marcador = "--- Capítulos da Transmissão ---";
-        
+
         // Busca apenas o texto do marcador, sem depender de quebras de linha
         let descricaoBase = descricaoAtual;
         if (descricaoAtual.includes(marcador)) {
@@ -129,7 +129,7 @@ async function atualizarDescricaoYouTube(capitulosArray) {
         }
 
         const novosCapitulosTexto = capitulosArray.join('\n');
-        
+
         // Remonta a descrição forçando a formatação correta
         snippet.description = `${descricaoBase}\n\n${marcador}\n${novosCapitulosTexto}`;
 
