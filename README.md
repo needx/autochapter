@@ -1,4 +1,4 @@
-markdown_content = """<div align="center">
+<div align="center">
   <h1>🎥 OBS Auto Chapters</h1>
   <p><b>Gerenciador de Capítulos Automático</b></p>
   <p>Um aplicativo multiplataforma (Windows, Mac, Linux) construído com <b>Electron</b> e <b>Node.js</b> para automatizar a marcação de capítulos em transmissões ao vivo.</p>
@@ -234,5 +234,3 @@ npm run build:mac
 # Para Linux (.AppImage / .deb)
 npm run build:linux
 ```
-README.md
-Exibindo README.md.
